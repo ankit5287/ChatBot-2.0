@@ -27,7 +27,7 @@ He approaches projects with a focus on problem-solving and attention to detail.
 """
 
 # Use a tool-capable model for real-time information
-MODEL_NAME = "gemini-1.5-pro-latest" 
+MODEL_NAME = "gemini-1.5-pro" 
 
 
 # --- API KEY & MODEL INITIALIZATION ---
