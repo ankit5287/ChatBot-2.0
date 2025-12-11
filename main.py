@@ -27,7 +27,7 @@ He approaches projects with a focus on problem-solving and attention to detail.
 """
 
 # STARTING WITH THE STABLE, FREE MODEL
-MODEL_NAME = "gemini-1.5-flash" 
+MODEL_NAME = "gemini-pro" 
 
 # --- API KEY & MODEL INITIALIZATION ---
 
