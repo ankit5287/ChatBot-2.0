@@ -53,7 +53,7 @@ try:
     # It requires google-generativeai >= 0.5.0.
     model = genai.GenerativeModel(
         MODEL_NAME,
-        tools=["google_search_retrieval"] 
+        tools=[{"google_search_retrieval": {}}] 
     )
 except ValueError as e:
      st.error(
