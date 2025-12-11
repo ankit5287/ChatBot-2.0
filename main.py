@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 from dotenv import load_dotenv
-import google.generativeai as genai
+from openai import OpenAI
 
 # --- CONFIGURATION CONSTANTS ---
 
@@ -26,9 +26,8 @@ CREATOR_PROFILE = """
 He approaches projects with a focus on problem-solving and attention to detail.
 """
 
-# Use a tool-capable model for real-time information
-MODEL_NAME = "gemini-1.5-flash" 
-
+# Use a standard OpenAI model
+MODEL_NAME = "gpt-3.5-turbo" 
 
 # --- API KEY & MODEL INITIALIZATION ---
 
@@ -39,28 +38,17 @@ except ImportError:
     pass 
 
 # Configure API key
-api_key = os.getenv("GOOGLE_API_KEY") or st.secrets.get("GOOGLE_API_KEY")
+api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
 
 if not api_key:
-    st.error("Configuration Error: GOOGLE_API_KEY not found. Please set it in your .env file or Streamlit Secrets.")
+    st.error("Configuration Error: OPENAI_API_KEY not found. Please set it in your .env file or Streamlit Secrets.")
     st.stop()
-    
-genai.configure(api_key=api_key)
 
-# Initialize the model with the Google Search tool enabled
+# Initialize OpenAI Client
 try:
-    # THIS IS THE KEY TO ENABLE REAL-TIME SEARCH.
-    # It requires google-generativeai >= 0.5.0.
-    model = genai.GenerativeModel(
-        MODEL_NAME
-    )
-except ValueError as e:
-     st.error(
-         f"**Initialization Error (MUST FIX):** The AI tool could not be initialized. "
-         f"The error '{e}' means your `google-generativeai` library is too old. "
-         f"**ACTION REQUIRED:** Please update your `requirements.txt` file to include: "
-         f"`google-generativeai>=0.5.0` and **redeploy your app**."
-     )
+    client = OpenAI(api_key=api_key)
+except Exception as e:
+     st.error(f"Initialization Error: {e}")
      st.stop()
 
 
@@ -81,7 +69,7 @@ if "messages" not in st.session_state:
     # INITIAL GREETING MESSAGE
     st.session_state.messages.append({
         "role": "assistant",
-        "text": "Greetings, I am J.A.R.V.I.S. How may I assist you today?"
+        "text": "Greetings, I am J.A.R.V.I.S. (powered by GPT). How may I assist you today?"
     })
 
 # Display past messages
@@ -111,22 +99,24 @@ if user_input:
             f"\n\nFor more details on his projects and technical background, please visit his portfolio here: **[{CREATOR_PORTFOLIO}]({CREATOR_PORTFOLIO})**"
         )
     else:
-        # 2. Normal Gemini API Call
+        # 2. OpenAI API Call
         try:
             # Format the entire conversation history (for memory)
-            contents = []
+            # OpenAI expects {"role": "user"/"assistant", "content": "text"}
+            messages_payload = []
             for msg in st.session_state.messages:
-                # The API expects role 'model' for the assistant's responses
-                role = "user" if msg["role"] == "user" else "model" 
-                
-                contents.append(
-                    {"role": role, "parts": [{"text": msg["text"]}]}
+                # Convert the role names if needed (St uses 'assistant', OpenAI uses 'assistant', so it matches)
+                messages_payload.append(
+                    {"role": msg["role"], "content": msg["text"]}
                 )
             
-            # Call generate_content with history (memory)
-            # The model will use the 'google_search' tool automatically when needed
-            response = model.generate_content(contents) 
-            ai_text = response.text
+            # Call OpenAI Chat Completion
+            response = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=messages_payload
+            )
+            
+            ai_text = response.choices[0].message.content
 
         except Exception as e:
             # Fallback if API call fails
