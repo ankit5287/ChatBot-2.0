@@ -1,7 +1,7 @@
 import os
 import streamlit as st
 from dotenv import load_dotenv
-from openai import OpenAI
+import google.generativeai as genai
 
 # --- CONFIGURATION CONSTANTS ---
 
@@ -26,8 +26,8 @@ CREATOR_PROFILE = """
 He approaches projects with a focus on problem-solving and attention to detail.
 """
 
-# Use a standard OpenAI model
-MODEL_NAME = "gpt-3.5-turbo" 
+# STARTING WITH THE STABLE, FREE MODEL
+MODEL_NAME = "gemini-1.5-flash" 
 
 # --- API KEY & MODEL INITIALIZATION ---
 
@@ -38,15 +38,18 @@ except ImportError:
     pass 
 
 # Configure API key
-api_key = os.getenv("OPENAI_API_KEY") or st.secrets.get("OPENAI_API_KEY")
+api_key = os.getenv("GOOGLE_API_KEY") or st.secrets.get("GOOGLE_API_KEY")
 
 if not api_key:
-    st.error("Configuration Error: OPENAI_API_KEY not found. Please set it in your .env file or Streamlit Secrets.")
+    st.error("Configuration Error: GOOGLE_API_KEY not found. Please set it in your .env file or Streamlit Secrets.")
     st.stop()
+    
+genai.configure(api_key=api_key)
 
-# Initialize OpenAI Client
+# Initialize the model
 try:
-    client = OpenAI(api_key=api_key)
+    # Using the flash model without tools first to ensure stability
+    model = genai.GenerativeModel(MODEL_NAME)
 except Exception as e:
      st.error(f"Initialization Error: {e}")
      st.stop()
@@ -69,7 +72,7 @@ if "messages" not in st.session_state:
     # INITIAL GREETING MESSAGE
     st.session_state.messages.append({
         "role": "assistant",
-        "text": "Greetings, I am J.A.R.V.I.S. (powered by GPT). How may I assist you today?"
+        "text": "Greetings, I am J.A.R.V.I.S. (powered by Gemini). How may I assist you today?"
     })
 
 # Display past messages
@@ -99,24 +102,21 @@ if user_input:
             f"\n\nFor more details on his projects and technical background, please visit his portfolio here: **[{CREATOR_PORTFOLIO}]({CREATOR_PORTFOLIO})**"
         )
     else:
-        # 2. OpenAI API Call
+        # 2. Gemini API Call
         try:
             # Format the entire conversation history (for memory)
-            # OpenAI expects {"role": "user"/"assistant", "content": "text"}
-            messages_payload = []
+            contents = []
             for msg in st.session_state.messages:
-                # Convert the role names if needed (St uses 'assistant', OpenAI uses 'assistant', so it matches)
-                messages_payload.append(
-                    {"role": msg["role"], "content": msg["text"]}
+                # The API expects role 'model' for the assistant's responses
+                role = "user" if msg["role"] == "user" else "model" 
+                
+                contents.append(
+                    {"role": role, "parts": [{"text": msg["text"]}]}
                 )
             
-            # Call OpenAI Chat Completion
-            response = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=messages_payload
-            )
-            
-            ai_text = response.choices[0].message.content
+            # Call generate_content with history (memory)
+            response = model.generate_content(contents) 
+            ai_text = response.text
 
         except Exception as e:
             # Fallback if API call fails
