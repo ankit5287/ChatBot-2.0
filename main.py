@@ -52,8 +52,7 @@ try:
     # THIS IS THE KEY TO ENABLE REAL-TIME SEARCH.
     # It requires google-generativeai >= 0.5.0.
     model = genai.GenerativeModel(
-        MODEL_NAME,
-        tools=[{"google_search_retrieval": {}}] 
+        MODEL_NAME
     )
 except ValueError as e:
      st.error(
