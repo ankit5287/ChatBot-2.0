@@ -140,4 +140,4 @@ if user_input:
             st.markdown(ai_text)
             
         # Save AI response in session
-        st.session_state.messages.append({"role": "assistant", "text": ai_text
+        st.session_state.messages.append({"role": "assistant", "text": ai_text})
