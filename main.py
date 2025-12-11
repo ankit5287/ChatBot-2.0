@@ -5,7 +5,7 @@ import google.generativeai as genai
 
 # --- CONFIGURATION CONSTANTS ---
 
-# Define creator details as constants
+# Define creator details
 CREATOR_NAME = "Ankit Nandoliya"
 CREATOR_PORTFOLIO = "https://ankit52-git-main-ankitnandoliya32-8971s-projects.vercel.app/"
 CREATOR_KEYWORDS = [
@@ -32,13 +32,13 @@ MODEL_NAME = "gemini-1.5-pro-latest"
 
 # --- API KEY & MODEL INITIALIZATION ---
 
-# Load environment variables from .env
+# Load environment variables
 try:
     load_dotenv()
 except ImportError:
-    pass # Ignore if python-dotenv is not installed in deployment
+    pass 
 
-# Configure API key (from environment variable or Streamlit Secrets)
+# Configure API key
 api_key = os.getenv("GOOGLE_API_KEY") or st.secrets.get("GOOGLE_API_KEY")
 
 if not api_key:
@@ -48,14 +48,20 @@ if not api_key:
 genai.configure(api_key=api_key)
 
 # Initialize the model with the Google Search tool enabled
-# THIS IS THE KEY FIX FOR REAL-TIME INFORMATION
 try:
+    # THIS IS THE KEY TO ENABLE REAL-TIME SEARCH.
+    # It requires google-generativeai >= 0.5.0.
     model = genai.GenerativeModel(
         MODEL_NAME,
         tools=["google_search"] 
     )
 except ValueError as e:
-     st.error(f"Initialization Error: {e}. Please ensure your 'google-generativeai' library is version >= 0.5.0 in your requirements.txt.")
+     st.error(
+         f"**Initialization Error (MUST FIX):** The AI tool could not be initialized. "
+         f"The error '{e}' means your `google-generativeai` library is too old. "
+         f"**ACTION REQUIRED:** Please update your `requirements.txt` file to include: "
+         f"`google-generativeai>=0.5.0` and **redeploy your app**."
+     )
      st.stop()
 
 
@@ -94,7 +100,7 @@ if user_input:
 
     ai_text = ""
     
-    # 1. Custom Question Handling (Bypass API)
+    # 1. Custom Question Handling (Bypass API for fixed responses)
     is_creator_query = any(keyword in user_input.lower() for keyword in CREATOR_KEYWORDS)
 
     if is_creator_query:
@@ -106,7 +112,7 @@ if user_input:
             f"\n\nFor more details on his projects and technical background, please visit his portfolio here: **[{CREATOR_PORTFOLIO}]({CREATOR_PORTFOLIO})**"
         )
     else:
-        # 2. Normal Gemini API Call (if not a custom question)
+        # 2. Normal Gemini API Call
         try:
             # Format the entire conversation history (for memory)
             contents = []
@@ -114,12 +120,12 @@ if user_input:
                 # The API expects role 'model' for the assistant's responses
                 role = "user" if msg["role"] == "user" else "model" 
                 
-                # Using the dictionary list structure to avoid type errors
                 contents.append(
                     {"role": role, "parts": [{"text": msg["text"]}]}
                 )
             
             # Call generate_content with history (memory)
+            # The model will use the 'google_search' tool automatically when needed
             response = model.generate_content(contents) 
             ai_text = response.text
 
@@ -128,10 +134,10 @@ if user_input:
             st.error(f"I encountered an error trying to access the AI: {e}")
             ai_text = "My systems are currently experiencing a brief technical fault. Please try again."
 
-    # 3. Display and Save AI response (from custom handler or API)
+    # 3. Display and Save AI response
     if ai_text:
         with st.chat_message("assistant"):
             st.markdown(ai_text)
             
         # Save AI response in session
-        st.session_state.messages.append({"role": "assistant", "text": ai_text})
+        st.session_state.messages.append({"role": "assistant", "text": ai_text
